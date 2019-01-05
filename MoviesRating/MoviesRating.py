@@ -1,7 +1,8 @@
 '''
 @Desc  : 电影评分预测
-@Date  : 2019/1/3
+@Date  : 2019/1/5
 @Author: zhangjianfeng 
+@Modified by: Gadzan
 '''
 import time
 
@@ -12,8 +13,15 @@ from sklearn.model_selection import train_test_split
 
 # 加载数据集
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder, StandardScaler
-from sklearn.tree import DecisionTreeRegressor
+# from sklearn.tree import DecisionTreeRegressor
 # from sklearn.svm import SVR
+
+import keras
+from keras.models import Sequential, Model
+from keras.layers.core import Dense, Dropout, Activation
+from keras.optimizers import SGD, Adam, RMSprop
+from keras.utils import np_utils
+
 
 def loadDataSet(file_name):
     '''
@@ -143,7 +151,7 @@ print(data['runtime'].values.shape)
 print(type_enc.shape)
 
 # 用hstack会报错
-features = np.column_stack((data['votes'].values, data['runtime'].values, type_enc, region_enc))
+features = np.column_stack((data['votes'].values, data['runtime'].values, region_enc, type_enc))
 labels = data['rate']
 print(features.shape)
 print(data.info())
@@ -154,14 +162,40 @@ X_train, X_test, y_train, y_test = train_test_split(features,
                                                     test_size=0.3,
                                                     random_state=int(time.time()))
 
+print('X_train shape')
+print(X_train.shape)
+print(X_train.shape[0])
+print(X_train.shape[1])
+
 # 调用模型
-model = DecisionTreeRegressor(max_depth=10)
-model = DecisionTreeRegressor(min_samples_leaf=8)
-# model = SVR(kernel='rbf', C=1e3, gamma=0.1)
-model.fit(X_train, y_train)
+# model = DecisionTreeRegressor(max_depth=10)
+# model = DecisionTreeRegressor(min_samples_leaf=8)
+# # model = SVR(kernel='rbf', C=1e3, gamma=0.1)
+# model.fit(X_train, y_train)
+
+model = Sequential()
+model.add(Dense(input_dim=X_train.shape[1], units=200, activation='relu'))
+model.add(Dense(units=200, activation='relu'))
+model.add(Dense(units=200, activation='relu'))
+model.add(Dense(units=1, activation='relu'))
+
+model.compile(loss='mse', optimizer=SGD(lr=0.01, momentum=0.9, nesterov=True))
+
+model.fit(X_train, y_train, epochs=150, batch_size=200)
+
+score = model.evaluate(X_test, y_test, batch_size=1000)
+
+y_predict=model.predict(X_test)
+
+# print('y_pred:')
+# print(y_predict[0])
+# print('y_test:')
+# print(y_test[0:1])
+
+print('Total loss on Testing Set:', score)
 
 # 预测
-y_predict = model.predict(X_test)
+#y_predict = model.predict(X_test)
 
 # 绘制结果
 # index = np.arange(len(X_test))
